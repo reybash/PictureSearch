@@ -34,6 +34,7 @@
             android:layout_weight="1"
             android:background="@null"
             android:contentDescription="Add to Favorites"
+            android:padding="16dp"
             android:src="@android:drawable/btn_star_big_off" />
 
         <ImageButton
@@ -43,6 +44,7 @@
             android:layout_weight="1"
             android:background="@null"
             android:contentDescription="Download Image"
+            android:padding="16dp"
             android:src="@android:drawable/ic_menu_save" />
 
     </LinearLayout>
