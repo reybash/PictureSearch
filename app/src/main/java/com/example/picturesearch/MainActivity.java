@@ -26,8 +26,8 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String API_KEY = "AIzaSyAePgadUyv3tpyNbiUOY4Ql9tVhWKM_Q9w";
-    private static final String CX = "14b75d7e1762c40c8";
+    private static final String API_KEY = "";
+    private static final String CX = "";
 
     ImageItemDao imageItemDao;
 
