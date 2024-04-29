@@ -12,5 +12,18 @@
     <string name="image_added_to_favorites">Image added to Favorites</string>
     <string name="image_removed_from_favorites">Image removed from Favorites</string>
     <string name="enter_search_query">Enter search query</string>
-    <string name="search">Search</string>
+    <string name="search">Search\nНажимает Рубашевский</string>
+    <string name="picture_search">Picture Search</string>
+    <string name="task_info">Task Info</string>
+    <string name="task_info_text">
+        Необходимо разработать мобильное приложение, которое ищет в сети Интернет изображения по запросу пользователя, позволяет оценивать их, скачивать, и посещать интернет-страницы сайтов, на которых было найдено изображение.\n\n
+        Минимальные требования\n
+        1.	Наличие не менее 6 компонентов на экране (кнопки, меню, поля, картинки, пиктограммы)\n
+        2.	Снабдить ВСЕ элементы СОБЫТИЯМИ
+</string>
+    <string name="dev_author">Разработал Рубашевский</string>
+    <string name="author_info">Author info</string>
+    <string name="_575">Номер группы: АС-575</string>
+    <string name="kurs">Курс: 3</string>
+    <string name="fio">ФИО: Рубашевский Владислав Эдуардович</string>
 </resources>

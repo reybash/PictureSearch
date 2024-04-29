@@ -25,7 +25,10 @@
             </intent-filter>
         </activity>
         <activity android:name=".detailfragment.ImageDetailActivity" />
+        <activity android:name=".TaskInfoActivity" />
+        <activity android:name=".AuthorActivity" />
     </application>
+
     <meta-data
         android:name="API_KEY"
         android:value="${API_KEY}" />

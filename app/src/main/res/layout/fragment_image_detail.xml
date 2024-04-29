@@ -4,6 +4,15 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <TextView
+        android:id="@+id/authorTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:gravity="center"
+        android:text="@string/dev_author"
+        android:textSize="24sp" />
+
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="match_parent"

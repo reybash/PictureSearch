@@ -1,6 +1,7 @@
 package com.example.picturesearch;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.view.View;
@@ -75,9 +76,26 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.recyclerView).setVisibility(View.VISIBLE);
         findViewById(R.id.favorite_recyclerView).setVisibility(View.GONE);
 
+        Button buttonAuthor = findViewById(R.id.button_author);
+        Button buttonTask = findViewById(R.id.taskButton);
+
+        buttonAuthor.setOnClickListener(v -> {
+            // Создать намерение для перехода к новой активности
+            Intent intent = new Intent(MainActivity.this, AuthorActivity.class);
+
+            // Запустить новую активность
+            startActivity(intent);
+        });
+
+        buttonTask.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, TaskInfoActivity.class);
+            startActivity(intent);
+        });
+
         buttonSearch.setOnClickListener(v -> {
             query = editTextQuery.getText().toString();
             if (!query.isEmpty()) {
+                findViewById(R.id.headerLayout).setVisibility(View.GONE);
                 currentPage = 1;
                 imageItems.clear();
                 executeCustomSearchTask(query, currentPage, adapter);
@@ -126,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
     private void switchToSearchFragment() {
         findViewById(R.id.recyclerView).setVisibility(View.VISIBLE);
         findViewById(R.id.favorite_recyclerView).setVisibility(View.GONE);
+        findViewById(R.id.headerLayout).setVisibility(View.GONE);
 
         editTextQuery.setVisibility(View.VISIBLE);
         buttonSearch.setVisibility(View.VISIBLE);
@@ -140,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.favorite_recyclerView).setVisibility(View.VISIBLE);
         editTextQuery.setVisibility(View.GONE);
         buttonSearch.setVisibility(View.GONE);
+        findViewById(R.id.headerLayout).setVisibility(View.VISIBLE);
 
 
         executor.execute(() -> {
