@@ -24,7 +24,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".ImageDetailActivity" />
+        <activity android:name=".detailfragment.ImageDetailActivity" />
     </application>
-
+    <meta-data
+        android:name="API_KEY"
+        android:value="${API_KEY}" />
+    <meta-data
+        android:name="CX"
+        android:value="${CX}" />
 </manifest>

@@ -1,4 +1,4 @@
-package com.example.picturesearch;
+package com.example.picturesearch.database;
 
 import android.support.annotation.NonNull;
 

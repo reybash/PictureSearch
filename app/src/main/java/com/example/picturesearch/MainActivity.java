@@ -1,41 +1,48 @@
 package com.example.picturesearch;
 
 import android.annotation.SuppressLint;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.annotation.NonNull;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.picturesearch.database.DatabaseManager;
+import com.example.picturesearch.database.ImageItem;
+import com.example.picturesearch.database.ImageItemDao;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
-
-    private static final String API_KEY = "AIzaSyAePgadUyv3tpyNbiUOY4Ql9tVhWKM_Q9w";
-    private static final String CX = "14b75d7e1762c40c8";
-
-    ImageItemDao imageItemDao;
-
+    private boolean isLoading = false;
+    private static final int LAST_PAGE = 25;
+    private int currentPage; // Текущая страница данных
+    private String query;
+    private ImageItemDao imageItemDao;
+    private ImageSearchHelper imageSearchHelper;
     private EditText editTextQuery;
     private Button buttonSearch;
     private ImageListAdapter adapter;
+    private ImageListAdapter favoriteAdapter;
     private List<ImageItem> imageItems;
+    private Executor executor;
 
+    private final Map<Integer, Runnable> navigationActions = new HashMap<Integer, Runnable>() {{
+        put(R.id.action_search, () -> switchToSearchFragment());
+        put(R.id.action_favorites, () -> switchToFavoritesFragment());
+    }};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,45 +54,79 @@ public class MainActivity extends AppCompatActivity {
 
         DatabaseManager.initialize(getApplicationContext());
         imageItemDao = DatabaseManager.getImageItemDao();
+        imageSearchHelper = new ImageSearchHelper();
 
         editTextQuery = findViewById(R.id.searchEditText);
         buttonSearch = findViewById(R.id.searchButton);
-        ListView listView = findViewById(R.id.imageView);
         imageItems = new ArrayList<>();
 
-        adapter = new ImageListAdapter(this, new ArrayList<>(), imageItemDao);
-        listView.setAdapter(adapter);
-        adapter.setListView(listView);
+        RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new ImageListAdapter(this, imageItems);
+        recyclerView.setAdapter(adapter);
+
+        RecyclerView favoriteRecyclerView = findViewById(R.id.favorite_recyclerView);
+        favoriteRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        favoriteAdapter = new ImageListAdapter(MainActivity.this, new ArrayList<>());
+        favoriteRecyclerView.setAdapter(favoriteAdapter);
+
+        executor = Executors.newCachedThreadPool();
+
+        findViewById(R.id.recyclerView).setVisibility(View.VISIBLE);
+        findViewById(R.id.favorite_recyclerView).setVisibility(View.GONE);
 
         buttonSearch.setOnClickListener(v -> {
-            String query = editTextQuery.getText().toString();
+            query = editTextQuery.getText().toString();
             if (!query.isEmpty()) {
-                new CustomSearchTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, query);
+                currentPage = 1;
+                imageItems.clear();
+                executeCustomSearchTask(query, currentPage, adapter);
             }
         });
 
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+                assert layoutManager != null;
+                int visibleItemCount = layoutManager.getChildCount();
+                int totalItemCount = layoutManager.getItemCount();
+                int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+
+                if (!isLoading && (currentPage <= LAST_PAGE)) {
+                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount) {
+                        Toast.makeText(MainActivity.this, "Page " + currentPage, Toast.LENGTH_SHORT).show();
+                        loadMoreItems();
+                    }
+                }
+            }
+        });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Обновить данные в активности
+        adapter.checkFavoriteStatus();
+        favoriteAdapter.checkFavoriteStatus();
+    }
 
-    private final NavigationBarView.OnItemSelectedListener navListener =
-            item -> {
-                int id = item.getItemId();
+    private final NavigationBarView.OnItemSelectedListener navListener = item -> {
+        int id = item.getItemId();
+        Runnable action = navigationActions.get(id);
+        if (action != null) {
+            action.run();
+            return true;
+        }
+        return false;
+    };
 
-                if (id == R.id.action_search) {
-                    // Переключиться на поиск
-                    switchToSearchFragment();
-                    return true;
-                } else if (id == R.id.action_favorites) {
-                    // Переключиться на избранное
-                    switchToFavoritesFragment();
-                    return true;
-                }
-
-                return false;
-            };
-
+    @SuppressLint("NotifyDataSetChanged")
     private void switchToSearchFragment() {
-        // Ваш код для переключения на фрагмент поиска
+        findViewById(R.id.recyclerView).setVisibility(View.VISIBLE);
+        findViewById(R.id.favorite_recyclerView).setVisibility(View.GONE);
+
         editTextQuery.setVisibility(View.VISIBLE);
         buttonSearch.setVisibility(View.VISIBLE);
 
@@ -93,84 +134,43 @@ public class MainActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-    @SuppressLint("StaticFieldLeak")
+    @SuppressLint("NotifyDataSetChanged")
     private void switchToFavoritesFragment() {
-        // Ваш код для переключения на фрагмент избранных
+        findViewById(R.id.recyclerView).setVisibility(View.GONE);
+        findViewById(R.id.favorite_recyclerView).setVisibility(View.VISIBLE);
         editTextQuery.setVisibility(View.GONE);
         buttonSearch.setVisibility(View.GONE);
 
-        new AsyncTask<Void, Void, List<ImageItem>>() {
-            @Override
-            protected List<ImageItem> doInBackground(Void... voids) {
-                return imageItemDao.getAll();
-            }
 
-            @Override
-            protected void onPostExecute(List<ImageItem> favoriteImages) {
-                // Передайте избранные картинки в адаптер и обновите ListView (или другой вид)
-                adapter.setImageItems(favoriteImages);
-                adapter.notifyDataSetChanged();
-            }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        executor.execute(() -> {
+            // Выполняем получение данных в фоновом потоке
+            List<ImageItem> favoriteImages = imageItemDao.getAll();
+
+            // Обновляем UI в основном потоке
+            runOnUiThread(() -> {
+                favoriteAdapter.setImageItems(favoriteImages);
+                favoriteAdapter.notifyDataSetChanged();
+            });
+        });
     }
 
-    @SuppressLint("StaticFieldLeak")
-    private class CustomSearchTask extends AsyncTask<String, Void, List<ImageItem>> {
+    private void loadMoreItems() {
+        isLoading = true;
+        int nextPage = currentPage++;
+        executeCustomSearchTask(query, nextPage, adapter);
+    }
 
-        @Override
-        protected List<ImageItem> doInBackground(String... strings) {
-            String query = strings[0];
-            List<ImageItem> newImageItems = new ArrayList<>();
-            try {
-                URL url = new URL("https://www.googleapis.com/customsearch/v1?key=" + API_KEY +
-                        "&cx=" + CX + "&q=" + query + "&searchType=image");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("Accept", "application/json");
-
-                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = br.readLine()) != null) {
-                    response.append(line);
-                }
-
-                JSONObject jsonResponse = new JSONObject(response.toString());
-                JSONArray items = jsonResponse.getJSONArray("items");
-                for (int i = 0; i < items.length(); i++) {
-                    JSONObject item = items.getJSONObject(i);
-                    String link = item.getString("link");
-                    String title = item.optString("title", "");
-
-                    JSONObject imageObject = item.getJSONObject("image");
-                    String contextLink = imageObject.optString("contextLink", "");
-                    int height = imageObject.optInt("height", 0);
-                    int width = imageObject.optInt("width", 0);
-                    int byteSize = imageObject.optInt("byteSize", 0);
-
-                    ImageItem imageItem = new ImageItem(link, title, contextLink, height, width, byteSize);
-                    newImageItems.add(imageItem);
-                }
-
-                conn.disconnect();
-            } catch (Exception e) {
-                Log.e("CustomSearchTask", "Error: " + e.getMessage());
-                e.printStackTrace();
-            }
-            return newImageItems;
-        }
-
-        @Override
-        protected void onPostExecute(List<ImageItem> newImageItems) {
-            if (newImageItems != null && !newImageItems.isEmpty()) {
-                imageItems.clear(); // Очистить текущий список перед добавлением новых элементов
-                imageItems.addAll(newImageItems); // Добавить новые элементы в текущий список
-                adapter.setImageItems(imageItems);
+    @SuppressLint("NotifyDataSetChanged")
+    private void executeCustomSearchTask(String query, int pageNumber, ImageListAdapter adapter) {
+        executor.execute(() -> {
+            List<ImageItem> newImageItems = imageSearchHelper.searchImages(query, pageNumber);
+            // Обновляем интерфейс в основном потоке
+            runOnUiThread(() -> {
+                imageItems.addAll(newImageItems);
                 adapter.notifyDataSetChanged();
-            } else {
-                Log.d("CustomSearchTask", "No images found");
-            }
-        }
+                isLoading = false;
+            });
+        });
     }
 }
+

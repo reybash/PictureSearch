@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">PictureSearch</string>
+    <string name="add_to_favorites">Add to Favorites</string>
+    <string name="image_in_adapter">Image in adapter</string>
+    <string name="download_image">Download Image</string>
+    <string name="add_to_favorites_in_fragment">Add to Favorites</string>
+    <string name="size">Size</string>
+    <string name="resolution">Resolution</string>
+    <string name="source">Source</string>
+    <string name="title">Title</string>
+    <string name="image_in_fragment">Image in fragment</string>
+    <string name="image_added_to_favorites">Image added to Favorites</string>
+    <string name="image_removed_from_favorites">Image removed from Favorites</string>
+    <string name="enter_search_query">Enter search query</string>
+    <string name="search">Search</string>
 </resources>
