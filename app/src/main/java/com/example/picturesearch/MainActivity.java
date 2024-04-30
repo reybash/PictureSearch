@@ -7,7 +7,7 @@ import android.support.annotation.NonNull;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
+import android.widget.RelativeLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -39,6 +39,9 @@ public class MainActivity extends AppCompatActivity {
     private ImageListAdapter favoriteAdapter;
     private List<ImageItem> imageItems;
     private Executor executor;
+    private RecyclerView recyclerView;
+    private RecyclerView favoriteRecyclerView;
+    private RelativeLayout headerLayout;
 
     private final Map<Integer, Runnable> navigationActions = new HashMap<Integer, Runnable>() {{
         put(R.id.action_search, () -> switchToSearchFragment());
@@ -59,22 +62,23 @@ public class MainActivity extends AppCompatActivity {
 
         editTextQuery = findViewById(R.id.searchEditText);
         buttonSearch = findViewById(R.id.searchButton);
+        headerLayout = findViewById(R.id.headerLayout);
         imageItems = new ArrayList<>();
 
-        RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new ImageListAdapter(this, imageItems);
         recyclerView.setAdapter(adapter);
 
-        RecyclerView favoriteRecyclerView = findViewById(R.id.favorite_recyclerView);
+        favoriteRecyclerView = findViewById(R.id.favorite_recyclerView);
         favoriteRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         favoriteAdapter = new ImageListAdapter(MainActivity.this, new ArrayList<>());
         favoriteRecyclerView.setAdapter(favoriteAdapter);
 
         executor = Executors.newCachedThreadPool();
 
-        findViewById(R.id.recyclerView).setVisibility(View.VISIBLE);
-        findViewById(R.id.favorite_recyclerView).setVisibility(View.GONE);
+        recyclerView.setVisibility(View.VISIBLE);
+        favoriteRecyclerView.setVisibility(View.GONE);
 
         Button buttonAuthor = findViewById(R.id.button_author);
         Button buttonTask = findViewById(R.id.taskButton);
@@ -114,7 +118,6 @@ public class MainActivity extends AppCompatActivity {
 
                 if (!isLoading && (currentPage <= LAST_PAGE)) {
                     if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount) {
-                        Toast.makeText(MainActivity.this, "Page " + currentPage, Toast.LENGTH_SHORT).show();
                         loadMoreItems();
                     }
                 }
@@ -142,9 +145,9 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("NotifyDataSetChanged")
     private void switchToSearchFragment() {
-        findViewById(R.id.recyclerView).setVisibility(View.VISIBLE);
-        findViewById(R.id.favorite_recyclerView).setVisibility(View.GONE);
-        findViewById(R.id.headerLayout).setVisibility(View.GONE);
+        recyclerView.setVisibility(View.VISIBLE);
+        favoriteRecyclerView.setVisibility(View.GONE);
+        headerLayout.setVisibility(View.GONE);
 
         editTextQuery.setVisibility(View.VISIBLE);
         buttonSearch.setVisibility(View.VISIBLE);
@@ -155,11 +158,11 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("NotifyDataSetChanged")
     private void switchToFavoritesFragment() {
-        findViewById(R.id.recyclerView).setVisibility(View.GONE);
-        findViewById(R.id.favorite_recyclerView).setVisibility(View.VISIBLE);
+        recyclerView.setVisibility(View.GONE);
+        favoriteRecyclerView.setVisibility(View.VISIBLE);
         editTextQuery.setVisibility(View.GONE);
         buttonSearch.setVisibility(View.GONE);
-        findViewById(R.id.headerLayout).setVisibility(View.VISIBLE);
+        headerLayout.setVisibility(View.VISIBLE);
 
 
         executor.execute(() -> {
@@ -176,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadMoreItems() {
         isLoading = true;
-        int nextPage = currentPage++;
+        int nextPage = ++currentPage;
         executeCustomSearchTask(query, nextPage, adapter);
     }
 
